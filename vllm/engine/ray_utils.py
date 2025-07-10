@@ -37,6 +37,7 @@ def initialize_cluster(
                 "Ray is not installed. Please install Ray to use distributed "
                 "serving.")
         # Connect to a ray cluster.
+        print(f'======== 调用 ray.init(address={ray_address})，将当前机器加入 ray 集群。')
         ray.init(address=ray_address)
 
     if not parallel_config.worker_use_ray:
@@ -46,10 +47,13 @@ def initialize_cluster(
         # the distributed megatron code (e.g., get world size) works correctly.
         distributed_init_method = f"tcp://localhost:{port}"
         all_stage_devices = [[(0, None, 0)]]
+        print(f'======== 不启用ray 分布式集群，返回 distributed_init_method: {distributed_init_method}')
         return distributed_init_method, all_stage_devices
+
 
     # Assume we have a uniform cluster that each node has the same number of
     # GPUs for now.
+    print(f'======== 启用ray 分布式集群，获取集群信息。')
     valid_node_resources = []
     num_devices_per_node = None
     for node in ray.nodes():
@@ -61,7 +65,7 @@ def initialize_cluster(
             assert num_devices_per_node == node['Resources']['GPU'], (
                 "The number of GPUs per node is not uniform.")
         for key in node['Resources']:
-            if key.startswith('node:'):
+            if key.startswith('node:') and 'internal' not in key:
                 valid_node_resources.append(key)
 
     # Verify the parallel config.

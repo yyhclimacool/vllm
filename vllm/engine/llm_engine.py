@@ -57,14 +57,15 @@ class LLMEngine:
         log_stats: bool,
     ) -> None:
         logger.info(
-            "Initializing an LLM engine with config: "
+            "======== 调用 LLMEngine 的构造函数：Initializing an LLM engine with config: "
             f"model={model_config.model!r}, "
             f"dtype={model_config.dtype}, "
             f"use_dummy_weights={model_config.use_dummy_weights}, "
             f"download_dir={model_config.download_dir!r}, "
             f"use_np_weights={model_config.use_np_weights}, "
             f"tensor_parallel_size={parallel_config.tensor_parallel_size}, "
-            f"seed={model_config.seed})"
+            f"seed={model_config.seed},"
+            f"use_ray={parallel_config.worker_use_ray}"
         )
         # TODO(woosuk): Print more configs in debug mode.
 
@@ -81,13 +82,15 @@ class LLMEngine:
         # Create the parallel GPU workers.
         self.workers: List[Worker] = []
         assert len(stage_devices) == 1, "Only support one stage for now."
+        print(f'======== 目前只支持一个 stage_devices，stage_devices: {stage_devices}')
         for rank, node_resource, _ in stage_devices[0]:
             worker_cls = Worker
             if self.parallel_config.worker_use_ray:
+                print(f'======== 启用ray 分布式集群，创建 worker 作为 ray 的 actor。')
                 worker_cls = ray.remote(
                     num_cpus=0,
                     num_gpus=1,
-                    resources={node_resource: 1e-5},
+                    resources={node_resource: 1e-3},
                 )(worker_cls).remote
 
             worker = worker_cls(
@@ -98,6 +101,7 @@ class LLMEngine:
                 distributed_init_method,
             )
             self.workers.append(worker)
+        print(f'======== 创建 worker 完成，worker 数量: {len(self.workers)}')
         # Profile the memory usage and initialize the cache.
         self._init_cache()
 
@@ -139,8 +143,9 @@ class LLMEngine:
         # Create the engine configs.
         engine_configs = engine_args.create_engine_configs()
         parallel_config = engine_configs[2]
-        # Initialize the cluster.
+        # Initialize the cluster. 主要是初始化 ray 分布式集群，并返回分布式初始化方法和设备列表
         distributed_init_method, devices = initialize_cluster(parallel_config)
+        print(f'======== 初始化 ray 分布式集群完成，distributed_init_method: {distributed_init_method}, devices: {devices}')
         # Create the LLM engine.
         engine = cls(*engine_configs, distributed_init_method, devices,
                      log_stats=not engine_args.disable_log_stats)
@@ -179,16 +184,18 @@ class LLMEngine:
         # Create the sequences.
         block_size = self.cache_config.block_size
         seqs: List[Sequence] = []
+        # 默认情况下这里best_of=1，所以这里只会创建一个sequence
         for _ in range(sampling_params.best_of):
             seq_id = next(self.seq_counter)
             seq = Sequence(seq_id, prompt, prompt_token_ids, block_size)
             seqs.append(seq)
 
-        # Create the sequence group.
+        # Create the sequence group. 构造函数没有做更多的事情，只是将seqs和sampling_params保存下来
         seq_group = SequenceGroup(request_id, seqs, sampling_params,
                                   arrival_time)
 
         # Add the sequence group to the scheduler.
+        # 放入了 waiting队列，等待被调度
         self.scheduler.add_seq_group(seq_group)
 
     def abort_request(self, request_id: str) -> None:

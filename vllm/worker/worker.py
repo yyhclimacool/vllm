@@ -81,6 +81,7 @@ class Worker:
         for group_id in range(max_num_seqs):
             seq_len = (max_num_batched_tokens // max_num_seqs +
                        (group_id < max_num_batched_tokens % max_num_seqs))
+            print(f'======== group_id: {group_id}, seq_len: {seq_len}')
             seq_data = SequenceData([0] * seq_len)
             seq = SequenceGroupMetadata(
                 request_id=str(group_id),
@@ -110,6 +111,7 @@ class Worker:
         total_gpu_memory = get_gpu_memory()
         cache_block_size = CacheEngine.get_cache_block_size(
             block_size, self.model_config, self.parallel_config)
+        print(f'======== total_gpu_memory: {total_gpu_memory/1024/1024} MB, peak_memory: {peak_memory/1024/1024} MB, available_memory: {(total_gpu_memory * gpu_memory_utilization - peak_memory)/1024/1024} MB, cache_block_size: {cache_block_size/1024/1024} MB')
         num_gpu_blocks = int((total_gpu_memory * gpu_memory_utilization
                               - peak_memory) // cache_block_size)
         num_cpu_blocks = int(cpu_swap_space // cache_block_size)
@@ -297,7 +299,7 @@ def _init_distributed_environment(
         world_size=parallel_config.world_size,
         rank=rank,
         init_method=distributed_init_method,
-    )
+    )  
     # A small all_reduce for warmup.
     torch.distributed.all_reduce(torch.zeros(1).cuda())
     initialize_model_parallel(parallel_config.tensor_parallel_size,

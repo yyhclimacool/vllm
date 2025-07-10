@@ -1,4 +1,5 @@
 """Utilities for downloading and initializing model weights."""
+
 import filelock
 import glob
 import json
@@ -27,26 +28,31 @@ def hf_model_weights_iterator(
     lock_dir = cache_dir if cache_dir is not None else "/tmp"
     lock_file_name = model_name_or_path.replace("/", "-") + ".lock"
     lock = filelock.FileLock(os.path.join(lock_dir, lock_file_name))
-
+    print(f"======== Downloading model weights from {model_name_or_path}")
     # Download model weights from huggingface.
     is_local = os.path.isdir(model_name_or_path)
+    print(f"======== is_local: {is_local}")
     if not is_local:
         with lock:
-            hf_folder = snapshot_download(model_name_or_path,
-                                          allow_patterns="*.bin",
-                                          cache_dir=cache_dir,
-                                          tqdm_class=Disabledtqdm)
+            print(f"======== Downloading model weights from {model_name_or_path}, cache_dir: {cache_dir}")
+            hf_folder = snapshot_download(
+                model_name_or_path,
+                allow_patterns="*.bin",
+                cache_dir=cache_dir,
+                # tqdm_class=Disabledtqdm,
+            )
     else:
         hf_folder = model_name_or_path
 
     hf_bin_files = glob.glob(os.path.join(hf_folder, "*.bin"))
+    print(f"======== hf_bin_files: {hf_bin_files}")
 
     if use_np_cache:
         # Convert the model weights from torch tensors to numpy arrays for
         # faster loading.
-        np_folder = os.path.join(hf_folder, 'np')
+        np_folder = os.path.join(hf_folder, "np")
         os.makedirs(np_folder, exist_ok=True)
-        weight_names_file = os.path.join(np_folder, 'weight_names.json')
+        weight_names_file = os.path.join(np_folder, "weight_names.json")
         with lock:
             if not os.path.exists(weight_names_file):
                 weight_names = []
@@ -57,12 +63,11 @@ def hf_model_weights_iterator(
                         with open(param_path, "wb") as f:
                             np.save(f, param.cpu().detach().numpy())
                         weight_names.append(name)
-                with open(weight_names_file, 'w') as f:
+                with open(weight_names_file, "w") as f:
                     json.dump(weight_names, f)
 
-        with open(weight_names_file, 'r') as f:
+        with open(weight_names_file, "r") as f:
             weight_names = json.load(f)
-
         for name in weight_names:
             param_path = os.path.join(np_folder, name)
             with open(param_path, "rb") as f:
@@ -70,8 +75,10 @@ def hf_model_weights_iterator(
             yield name, torch.from_numpy(param)
     else:
         for bin_file in hf_bin_files:
+            print(f'======== load weights from bin_file: {bin_file}')
             state = torch.load(bin_file, map_location="cpu")
             for name, param in state.items():
+                print(f"======== name: {name}, param: {param.shape}")
                 yield name, param
 
 
@@ -87,16 +94,20 @@ def load_tensor_parallel_weights(
         if p in param_name:
             shard_size = param.shape[0]
             loaded_weight = loaded_weight[
-                shard_size * tensor_model_parallel_rank
-                :shard_size * (tensor_model_parallel_rank + 1)]
+                shard_size
+                * tensor_model_parallel_rank : shard_size
+                * (tensor_model_parallel_rank + 1)
+            ]
             break
     for p in row_parallel_weight_names:
         if p in param_name:
             shard_size = param.shape[1]
             loaded_weight = loaded_weight[
                 :,
-                shard_size * tensor_model_parallel_rank
-                :shard_size * (tensor_model_parallel_rank + 1)]
+                shard_size
+                * tensor_model_parallel_rank : shard_size
+                * (tensor_model_parallel_rank + 1),
+            ]
             break
     assert param.shape == loaded_weight.shape
     param.data.copy_(loaded_weight)

@@ -87,10 +87,12 @@ class Sequence:
         self.output_logprobs: List[Dict[int, float]] = []
         self.output_tokens: List[str] = []
         self.output_text = ""
-
+        # 每个sequence都有其logical token blocks，每个logical token block都对应一个物理block
         self.logical_token_blocks: List[LogicalTokenBlock] = []
         # Initialize the logical token blocks with the prompt token ids.
+        # 将提示词的 token_ids 放入 logical_token_blocks，logical_token_block 是分配在 CPU 上的，block_number 是逻辑块的编号，block_size 是逻辑块的大小
         self._append_tokens_to_blocks(prompt_token_ids)
+        # 初始状态都是waiting的，等待被调度
         self.status = SequenceStatus.WAITING
 
     def _append_logical_block(self) -> None:

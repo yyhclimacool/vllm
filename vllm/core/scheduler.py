@@ -117,17 +117,24 @@ class Scheduler:
         # the sequence groups in the RUNNING state.
         # In this case, the policy is responsible for deciding which sequence
         # groups to preempt.
+
+        # 这里先处理running队列
+        # 这里传入参数包含self.running，也就是等待时间越久的越被优先调度
         self.running = self.policy.sort_by_priority(now, self.running)
 
         # Reserve new token slots for the running sequence groups.
         running: List[SequenceGroup] = []
         preempted: List[SequenceGroup] = []
         while self.running:
+            # 不断的取出 running队列中的 sequence_group
             seq_group = self.running.pop(0)
+            # 这里的 block_manager 判断当前 worker 是否有空间
             while not self.block_manager.can_append_slot(seq_group):
                 if self.running:
+                    # 如果没有空间，running 队列又不空，则将 running 队列中优先级最低的 sequence_group 抢占
                     # Preempt the lowest-priority sequence groups.
                     victim_seq_group = self.running.pop(-1)
+                    # 把victim_group换出
                     self._preempt(victim_seq_group, blocks_to_swap_out)
                     preempted.append(victim_seq_group)
                 else:
@@ -137,6 +144,7 @@ class Scheduler:
                     preempted.append(seq_group)
                     break
             else:
+                # 如果可以append slot，有足够的空余 block 数量
                 # Append new slots to the sequence group.
                 self._append_slot(seq_group, blocks_to_copy)
                 running.append(seq_group)

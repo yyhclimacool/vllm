@@ -5,9 +5,12 @@ from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
 
 from vllm.engine.arg_utils import EngineArgs
 from vllm.engine.llm_engine import LLMEngine
+from vllm.logger import _root_logger
 from vllm.outputs import RequestOutput
 from vllm.sampling_params import SamplingParams
 from vllm.utils import Counter
+
+logger = _root_logger
 
 
 class LLM:
@@ -52,6 +55,7 @@ class LLM:
             seed=seed,
             **kwargs,
         )
+        logger.info(f"======== engine_args: {engine_args}")
         self.llm_engine = LLMEngine.from_engine_args(engine_args)
         self.request_counter = Counter()
 
@@ -86,15 +90,15 @@ class LLM:
             completions in the same order as the input prompts.
         """
         if prompts is None and prompt_token_ids is None:
-            raise ValueError("Either prompts or prompt_token_ids must be "
-                             "provided.")
+            raise ValueError("Either prompts or prompt_token_ids must be " "provided.")
         if isinstance(prompts, str):
             # Convert a single prompt to a list.
             prompts = [prompts]
         if prompts is not None and prompt_token_ids is not None:
             if len(prompts) != len(prompt_token_ids):
-                raise ValueError("The lengths of prompts and prompt_token_ids "
-                                 "must be the same.")
+                raise ValueError(
+                    "The lengths of prompts and prompt_token_ids " "must be the same."
+                )
         if sampling_params is None:
             # Use default sampling params.
             sampling_params = SamplingParams()
@@ -120,17 +124,21 @@ class LLM:
         prompt_token_ids: Optional[List[int]],
     ) -> None:
         request_id = str(next(self.request_counter))
-        self.llm_engine.add_request(request_id, prompt, sampling_params,
-                                    prompt_token_ids)
+        self.llm_engine.add_request(
+            request_id, prompt, sampling_params, prompt_token_ids
+        )
 
     def _run_engine(self, use_tqdm: bool) -> List[RequestOutput]:
         # Initialize tqdm.
         if use_tqdm:
+            # TODO(yyh): 这里的 num_unfinished_requests 是只计算了本次 add_request 的请求还是也计算了之前添加的请求？
+            # 这里是返回所有队列的数量，包括waiting、running、swapped
             num_requests = self.llm_engine.get_num_unfinished_requests()
             pbar = tqdm(total=num_requests, desc="Processed prompts")
         # Run the engine.
         outputs: List[RequestOutput] = []
         while self.llm_engine.has_unfinished_requests():
+            # 只要有未完成的sequence，就迭代一次，生成一个token，当然这里是一个 batch
             step_outputs = self.llm_engine.step()
             for output in step_outputs:
                 if output.finished():

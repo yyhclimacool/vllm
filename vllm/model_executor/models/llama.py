@@ -243,6 +243,7 @@ class LlamaForCausalLM(nn.Module):
                      cache_dir: Optional[str] = None,
                      use_np_cache: bool = False):
         tensor_model_parallel_rank = get_tensor_model_parallel_rank()
+        print(f'======== tensor_model_parallel_rank: {tensor_model_parallel_rank}')
         state_dict = self.state_dict()
 
         for name, loaded_weight in hf_model_weights_iterator(
@@ -254,7 +255,9 @@ class LlamaForCausalLM(nn.Module):
             for stride_id, att_weight_name in enumerate(["q_proj", "k_proj", "v_proj"]):
                 if att_weight_name not in name:
                     continue
+                print(f'======== name: {name}, after replace: {name.replace(att_weight_name, "qkv_proj")}')
                 param = state_dict[name.replace(att_weight_name, "qkv_proj")]
+                print(f'======== param.shape: {param.shape}')
                 shard_size = param.shape[0] // 3
                 loaded_weight = loaded_weight[
                     shard_size * tensor_model_parallel_rank
@@ -272,7 +275,9 @@ class LlamaForCausalLM(nn.Module):
             for stride_id, weight_name in enumerate(["gate_proj", "up_proj"]):
                 if weight_name not in name:
                     continue
+                print(f'======== name: {name}, after replace: {name.replace(weight_name, "gate_up_proj")}')
                 param = state_dict[name.replace(weight_name, "gate_up_proj")]
+                print(f'======== param.shape: {param.shape}')
                 shard_size = param.shape[0] // 2
                 loaded_weight = loaded_weight[
                     shard_size * tensor_model_parallel_rank

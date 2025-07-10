@@ -113,6 +113,10 @@ class EngineArgs:
                                          self.worker_use_ray)
         scheduler_config = SchedulerConfig(self.max_num_batched_tokens,
                                            self.max_num_seqs)
+        print(f'======== model_config: {model_config}')
+        print(f'======== cache_config: {cache_config}')
+        print(f'======== parallel_config: {parallel_config}')
+        print(f'======== scheduler_config: {scheduler_config}')
         return model_config, cache_config, parallel_config, scheduler_config
 
 

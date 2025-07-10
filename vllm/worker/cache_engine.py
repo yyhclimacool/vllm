@@ -28,6 +28,7 @@ class CacheEngine:
         self.parallel_config = parallel_config
 
         self.head_size = model_config.get_head_size()
+        # 当前worker的layers和heads
         self.num_layers = model_config.get_num_layers(parallel_config)
         self.num_heads = model_config.get_num_heads(parallel_config)
         self.dtype = model_config.dtype
@@ -46,9 +47,11 @@ class CacheEngine:
         # Initialize the events for stream synchronization.
         self.events = [torch.cuda.Event() for _ in range(self.num_layers)]
 
+    # TODO(yyh): 为什么key block shape 是这样子的？
     def get_key_block_shape(self) -> Tuple[int, int, int, int]:
-        element_size = torch.tensor([], dtype=self.dtype).element_size()
-        x = 16 // element_size
+        element_size = torch.tensor([], dtype=self.dtype).element_size() # 2
+        print(f'======== element_size: {element_size}')
+        x = 16 // element_size # 8
         return (
             self.num_heads,
             self.head_size // x,

@@ -10,7 +10,6 @@ logger = init_logger(__name__)
 
 _GiB = 1 << 30
 
-
 class ModelConfig:
     """Configuration for the model.
 
@@ -44,6 +43,8 @@ class ModelConfig:
 
         self.hf_config: PretrainedConfig = AutoConfig.from_pretrained(model)
         self.dtype = _get_and_verify_dtype(self.hf_config, dtype)
+    def __str__(self):
+        return f"ModelConfig(model={self.model}, download_dir={self.download_dir}, use_np_weights={self.use_np_weights}, use_dummy_weights={self.use_dummy_weights}, dtype={self.dtype}, seed={self.seed}, hf_config={self.hf_config})"
 
     def verify_with_parallel_config(
         self,
@@ -55,7 +56,8 @@ class ModelConfig:
             raise ValueError(
                 f"Total number of attention heads ({total_num_attention_heads})"
                 " must be divisible by tensor parallel size "
-                f"({tensor_parallel_size}).")
+                f"({tensor_parallel_size})."
+            )
 
         total_num_hidden_layers = self.hf_config.num_hidden_layers
         pipeline_parallel_size = parallel_config.pipeline_parallel_size
@@ -63,7 +65,8 @@ class ModelConfig:
             raise ValueError(
                 f"Total number of hidden layers ({total_num_hidden_layers}) "
                 "must be divisible by pipeline parallel size "
-                f"({pipeline_parallel_size}).")
+                f"({pipeline_parallel_size})."
+            )
 
     def get_hidden_size(self) -> int:
         return self.hf_config.hidden_size
@@ -90,6 +93,7 @@ class CacheConfig:
             vLLM execution.
         swap_space: Size of the CPU swap space per GPU (in GiB).
     """
+
     def __init__(
         self,
         block_size: int,
@@ -105,11 +109,15 @@ class CacheConfig:
         self.num_gpu_blocks = None
         self.num_cpu_blocks = None
 
+    def __str__(self):
+        return f"CacheConfig(block_size={self.block_size}, gpu_memory_utilization={self.gpu_memory_utilization}, swap_space={self.swap_space_bytes}, num_gpu_blocks={self.num_gpu_blocks}, num_cpu_blocks={self.num_cpu_blocks})"
+
     def _verify_args(self) -> None:
         if self.gpu_memory_utilization > 1.0:
             raise ValueError(
                 "GPU memory utilization must be less than 1.0. Got "
-                f"{self.gpu_memory_utilization}.")
+                f"{self.gpu_memory_utilization}."
+            )
 
     def verify_with_parallel_config(
         self,
@@ -124,7 +132,8 @@ class CacheConfig:
         msg = (
             f"{cpu_memory_usage / _GiB:.2f} GiB out of "
             f"the {total_cpu_memory / _GiB:.2f} GiB total CPU memory is "
-            "allocated for the swap space.")
+            "allocated for the swap space."
+        )
         if cpu_memory_usage > 0.7 * total_cpu_memory:
             raise ValueError("Too large swap space. " + msg)
         elif cpu_memory_usage > 0.4 * total_cpu_memory:
@@ -141,6 +150,7 @@ class ParallelConfig:
             True if either pipeline_parallel_size or tensor_parallel_size is
             greater than 1.
     """
+
     def __init__(
         self,
         pipeline_parallel_size: int,
@@ -156,10 +166,12 @@ class ParallelConfig:
             self.worker_use_ray = True
         self._verify_args()
 
+    def __str__(self):
+        return f"ParallelConfig(pipeline_parallel_size={self.pipeline_parallel_size}, tensor_parallel_size={self.tensor_parallel_size}, worker_use_ray={self.worker_use_ray}, world_size={self.world_size})"
+
     def _verify_args(self) -> None:
         if self.pipeline_parallel_size > 1:
-            raise NotImplementedError(
-                "Pipeline parallelism is not supported yet.")
+            raise NotImplementedError("Pipeline parallelism is not supported yet.")
 
 
 class SchedulerConfig:
@@ -171,6 +183,7 @@ class SchedulerConfig:
         max_num_seqs: Maximum number of sequences to be processed in a single
             iteration.
     """
+
     def __init__(
         self,
         max_num_batched_tokens: int,
@@ -178,6 +191,9 @@ class SchedulerConfig:
     ) -> None:
         self.max_num_batched_tokens = max_num_batched_tokens
         self.max_num_seqs = max_num_seqs
+
+    def __str__(self):
+        return f"SchedulerConfig(max_num_batched_tokens={self.max_num_batched_tokens}, max_num_seqs={self.max_num_seqs})"
 
 
 _STR_DTYPE_TO_TORCH_DTYPE = {
@@ -231,5 +247,6 @@ def _get_and_verify_dtype(
             raise ValueError(
                 "Bfloat16 is only supported on GPUs with compute capability "
                 f"of at least 8.0. Your {gpu_name} GPU has compute capability "
-                f"{compute_capability[0]}.{compute_capability[1]}.")
+                f"{compute_capability[0]}.{compute_capability[1]}."
+            )
     return torch_dtype

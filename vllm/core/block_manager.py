@@ -5,7 +5,8 @@ from vllm.block import PhysicalTokenBlock
 from vllm.sequence import Sequence, SequenceGroup, SequenceStatus
 from vllm.utils import Device
 
-
+# 这里主要是维护了一个free_blocks，预先分配 num_blocks 个 block，然后每次分配一个 block 的时候，从 free_blocks 中 pop 一个 block 出来，然后 ref_count 设置为 1
+# 每次 free 一个 block 的时候，ref_count 减 1，如果 ref_count 为 0，则将 block 添加到 free_blocks 中
 class BlockAllocator:
     """Manages free physical token blocks for a device.
 

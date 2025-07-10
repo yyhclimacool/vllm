@@ -46,6 +46,7 @@ _DATA_PARALLEL_GLOBAL_RANKS = None
 
 _ALL_REDUCE_LAUNCHER: Optional['GraphAllReduce'] = None
 
+# 在worker的构造函数中调用，初始化模型并行组
 def initialize_model_parallel(
     tensor_model_parallel_size: int = 1,
     pipeline_model_parallel_size: int = 1,
@@ -88,12 +89,14 @@ def initialize_model_parallel(
             f"world_size ({world_size}) is not divisible by tensor_model_parallel_size "
             f"({tensor_model_parallel_size}) x pipeline_model_parallel_size ({pipeline_model_parallel_size})"
         )
-
+    # 2
     data_parallel_size: int = world_size // (tensor_model_parallel_size *
                                              pipeline_model_parallel_size)
-
+    # 8
     num_tensor_model_parallel_groups: int  = world_size // tensor_model_parallel_size
+    # 4
     num_pipeline_model_parallel_groups: int = world_size // pipeline_model_parallel_size
+    # 2
     num_data_parallel_groups: int = world_size // data_parallel_size
 
     if virtual_pipeline_model_parallel_size is not None:
@@ -545,6 +548,7 @@ class GraphAllReduce:
         if not self.disable_graph:
             self.graphs = {}
             for num_tokens in range(8, max_num_tokens + 1, 8):
+                print(f'======== build graph for num_tokens: {num_tokens}')
                 self.graphs[num_tokens] = self._build_graph(num_tokens)
 
     def _build_graph(self, num_tokens: int) -> torch.cuda.CUDAGraph:
