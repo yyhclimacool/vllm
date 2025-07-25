@@ -29,6 +29,7 @@ void swap_blocks(
   void *src_ptr = src.data_ptr();
   void *dst_ptr = dst.data_ptr();
 
+  // 这里的 element_size 是 num_gpu_blocks, numel 是 num_heads
   const int64_t block_size_in_bytes = src.element_size() * src[0].numel();
   const cudaStream_t stream = at::cuda::getCurrentCUDAStream();
   // NOTE(woosuk): This can be slow if the number of blocks is large.

@@ -25,7 +25,7 @@ sampling_params = SamplingParams(temperature=0.8, top_p=0.95)
 # llm = LLM(model="facebook/opt-1.3b")       # 1.3B 参数
 # llm = LLM(model="facebook/opt-2.7b")       # 2.7B 参数
 # openlm-research/open_llama_3b不支持
-llm = LLM(model="models/lmsys/vicuna-7b-v1.3", worker_use_ray=True)
+llm = LLM(model="models/lmsys/vicuna-7b-v1.3", worker_use_ray=False)
 # Generate texts from the prompts. The output is a list of RequestOutput objects
 # that contain the prompt, generated text, and other information.
 outputs = llm.generate(prompts, sampling_params)
@@ -34,10 +34,10 @@ for output in outputs:
     prompt = output.prompt
     generated_text = output.outputs[0].text
     print(f"Prompt: {prompt!r}, Generated text: {generated_text!r}")
-print("===========================")
-outputs = llm.generate(prompts, sampling_params)
-# Print the outputs.
-for output in outputs:
-    prompt = output.prompt
-    generated_text = output.outputs[0].text
-    print(f"Prompt: {prompt!r}, Generated text: {generated_text!r}")
+# print("===========================")
+# outputs = llm.generate(prompts, sampling_params)
+# # Print the outputs.
+# for output in outputs:
+#     prompt = output.prompt
+#     generated_text = output.outputs[0].text
+#     print(f"Prompt: {prompt!r}, Generated text: {generated_text!r}")

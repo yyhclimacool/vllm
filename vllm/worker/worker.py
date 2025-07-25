@@ -81,7 +81,7 @@ class Worker:
         for group_id in range(max_num_seqs):
             seq_len = (max_num_batched_tokens // max_num_seqs +
                        (group_id < max_num_batched_tokens % max_num_seqs))
-            print(f'======== group_id: {group_id}, seq_len: {seq_len}')
+            # print(f'======== group_id: {group_id}, seq_len: {seq_len}')
             seq_data = SequenceData([0] * seq_len)
             seq = SequenceGroupMetadata(
                 request_id=str(group_id),
@@ -139,12 +139,14 @@ class Worker:
         input_positions: List[int] = []
         slot_mapping: List[int] = []
 
-        # Add prompt tokens.
+        # Add prompt tokens. 专门处理提示词 tokens
         prompt_lens: List[int] = []
         for seq_group_metadata in seq_group_metadata_list:
+            # 解析其中的一个 sequence group
             if not seq_group_metadata.is_prompt:
                 continue
-
+            # 下面处理的逻辑都是针对 prefill 阶段的请求
+            # 当前的 seq_group 包含哪些个 sequence？
             seq_ids = list(seq_group_metadata.seq_data.keys())
             sampling_params = seq_group_metadata.sampling_params
             seq_groups.append((seq_ids, sampling_params))
@@ -155,8 +157,9 @@ class Worker:
             seq_data = seq_group_metadata.seq_data[seq_id]
             prompt_tokens = seq_data.get_token_ids()
             prompt_len = len(prompt_tokens)
+            # 记录当前的 seq_group 的 prompt 长度
             prompt_lens.append(prompt_len)
-
+            # 将当前的 seq_group 的 prompt 的 token 添加到 input_tokens 中
             input_tokens.extend(prompt_tokens)
             # NOTE(woosuk): Here we assume that the first token in the prompt
             # is always the first token in the sequence.
@@ -168,12 +171,13 @@ class Worker:
                 slot_mapping.extend([0] * prompt_len)
                 continue
 
-            # Compute the slot mapping.
+            # Compute the slot mapping. 计算slot映射，这里的 seq_id 是 group中的第一个 sequence
             block_table = seq_group_metadata.block_tables[seq_id]
             for i in range(prompt_len):
                 block_number = block_table[i // self.block_size]
                 block_offset = i % self.block_size
                 slot = block_number * self.block_size + block_offset
+                # 这里计算出每一个token的slot_id
                 slot_mapping.append(slot)
 
         # Add generation tokens.
@@ -182,6 +186,7 @@ class Worker:
         context_lens: List[int] = []
         generation_block_tables: List[List[int]] = []
         for seq_group_metadata in seq_group_metadata_list:
+            # 跳过 prefill 阶段的请求，这里处理的都是 generation 阶段的请求
             if seq_group_metadata.is_prompt:
                 continue
 
@@ -275,7 +280,8 @@ class Worker:
 
         # Prepare input tensors.
         input_tokens, input_positions, input_metadata = self._prepare_inputs(
-            seq_group_metadata_list)
+            seq_group_metadata_list)in
+        print(f'======== input_tokens: {input_tokens}, input_positions: {input_positions}, input_metadata: {input_metadata}')
 
         # Execute the model.
         output = self.model(

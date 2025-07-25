@@ -94,12 +94,15 @@ class BlockSpaceManager:
         # Allocate new physical token blocks that will store the prompt tokens.
         block_table: BlockTable = []
         for _ in range(len(seq.logical_token_blocks)):
+            # 这里分配的是一个 PhysicalTokenBlock 对象，而不是真的 GPU 显存。
             block = self.gpu_allocator.allocate()
             # Set the reference counts of the token blocks.
             block.ref_count = seq_group.num_seqs()
+            # 注意这里并没有保存什么 token_ids，而只是一个状态记录
             block_table.append(block)
 
         # Assign the block table for each sequence.
+        # 每一个sequence都有它自己的physical token block table
         for seq in seq_group.get_seqs():
             self.block_tables[seq.seq_id] = block_table.copy()
 

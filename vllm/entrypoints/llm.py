@@ -139,9 +139,11 @@ class LLM:
         outputs: List[RequestOutput] = []
         while self.llm_engine.has_unfinished_requests():
             # 只要有未完成的sequence，就迭代一次，生成一个token，当然这里是一个 batch
+            print(f"======== num unfinished requests: {self.llm_engine.get_num_unfinished_requests()}")
             step_outputs = self.llm_engine.step()
             for output in step_outputs:
                 if output.finished():
+                    print(f"======== output: {output}")
                     outputs.append(output)
                     if use_tqdm:
                         pbar.update(1)

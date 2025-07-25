@@ -193,7 +193,7 @@ class Scheduler:
                 # If the sequence group has been preempted in this step, stop.
                 if seq_group in preempted:
                     break
-                # If the sequence group cannot be allocated, stop.
+                # If the sequence group cannot be allocated, stop. 这里是判断 gpu_allocator 还有多余的block 可用
                 if not self.block_manager.can_allocate(seq_group):
                     break
 
@@ -211,6 +211,7 @@ class Scheduler:
                     break
 
                 seq_group = self.waiting.pop(0)
+                # 分配 physical token block，记录状态
                 self._allocate(seq_group)
                 self.running.append(seq_group)
                 num_batched_tokens += num_prompt_tokens
