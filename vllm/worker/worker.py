@@ -280,7 +280,7 @@ class Worker:
 
         # Prepare input tensors.
         input_tokens, input_positions, input_metadata = self._prepare_inputs(
-            seq_group_metadata_list)in
+            seq_group_metadata_list)
         print(f'======== input_tokens: {input_tokens}, input_positions: {input_positions}, input_metadata: {input_metadata}')
 
         # Execute the model.
