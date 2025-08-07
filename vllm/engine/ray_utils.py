@@ -57,6 +57,7 @@ def initialize_cluster(
     valid_node_resources = []
     num_devices_per_node = None
     for node in ray.nodes():
+        print(f'======== 获取集群信息，node: {node}')
         if (not node['Alive']) or node['Resources']['GPU'] <= 0:
             continue
         if num_devices_per_node is None:

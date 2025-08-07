@@ -17,6 +17,7 @@ prompts = [
 ]
 # Create a sampling params object.
 sampling_params = SamplingParams(temperature=0.8, top_p=0.95)
+# sampling_params = SamplingParams(temperature=0, top_p=1, use_beam_search=True, n=2)
 
 # Create an LLM.
 # # OPT 系列（您之前用过的）

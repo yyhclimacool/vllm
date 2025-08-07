@@ -78,7 +78,7 @@ def hf_model_weights_iterator(
             print(f'======== load weights from bin_file: {bin_file}')
             state = torch.load(bin_file, map_location="cpu")
             for name, param in state.items():
-                print(f"======== name: {name}, param: {param.shape}")
+                print(f"======== name: {name}, weight_shape: {param.shape}")
                 yield name, param
 
 

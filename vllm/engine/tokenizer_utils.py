@@ -40,7 +40,7 @@ def get_tokenizer(
             "the fast tokenizer. This could potentially lead to performance "
             "degradation.")
         kwargs["use_fast"] = False
-    return AutoTokenizer.from_pretrained(model_name, *args, **kwargs)
+    return AutoTokenizer.from_pretrained(model_name, cache_dir="models/lmsys/vicuna-7b-v1.3/tokenizer", *args, **kwargs)
 
 
 def detokenize_incrementally(

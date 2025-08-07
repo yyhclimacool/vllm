@@ -38,6 +38,8 @@ def get_model(model_config: ModelConfig) -> nn.Module:
     # Create a model instance.
     # The weights will be initialized as empty tensors.
     model = model_class(model_config.hf_config)
+    for param in model.state_dict().values():
+        print(f"======== 模型包含的参数 name: {param.name}, shape: {param.shape}")
     if model_config.use_dummy_weights:
         model = model.cuda()
         # NOTE(woosuk): For accurate performance evaluation, we assign

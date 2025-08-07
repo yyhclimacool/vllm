@@ -255,9 +255,8 @@ class LlamaForCausalLM(nn.Module):
             for stride_id, att_weight_name in enumerate(["q_proj", "k_proj", "v_proj"]):
                 if att_weight_name not in name:
                     continue
-                print(f'======== name: {name}, after replace: {name.replace(att_weight_name, "qkv_proj")}')
                 param = state_dict[name.replace(att_weight_name, "qkv_proj")]
-                print(f'======== param.shape: {param.shape}')
+                print(f'======== name: {name}, after_replace_name: {name.replace(att_weight_name, "qkv_proj")}, weight_shape: {param.shape}')
                 shard_size = param.shape[0] // 3
                 loaded_weight = loaded_weight[
                     shard_size * tensor_model_parallel_rank

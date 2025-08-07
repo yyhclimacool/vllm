@@ -119,10 +119,10 @@ def initialize_model_parallel(
     global _DATA_PARALLEL_GLOBAL_RANKS
     assert _DATA_PARALLEL_GROUP is None, 'data parallel group is already initialized'
     all_data_parallel_group_ranks = []
-    for i in range(pipeline_model_parallel_size):
-        start_rank = i * num_pipeline_model_parallel_groups
-        end_rank = (i + 1) * num_pipeline_model_parallel_groups
-        for j in range(tensor_model_parallel_size):
+    for i in range(pipeline_model_parallel_size): # [0, 4）
+        start_rank = i * num_pipeline_model_parallel_groups # 0
+        end_rank = (i + 1) * num_pipeline_model_parallel_groups # 4
+        for j in range(tensor_model_parallel_size): #[0, 2）
             ranks = range(start_rank + j, end_rank, tensor_model_parallel_size)
             all_data_parallel_group_ranks.append(list(ranks))
             group = torch.distributed.new_group(ranks)
