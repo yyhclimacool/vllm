@@ -12,9 +12,11 @@ from torch.utils.cpp_extension import BuildExtension, CUDAExtension, CUDA_HOME
 ROOT_DIR = os.path.dirname(__file__)
 
 # Compiler flags.
-CXX_FLAGS = ["-g", "-O2", "-std=c++17"]
+# torch 2.14 headers use C++20 (`requires`). These flags are appended after
+# PyTorch's own `-std=c++20`, so c++17 here would override it and fail the build.
+CXX_FLAGS = ["-g", "-O2", "-std=c++20"]
 # TODO(woosuk): Should we use -O3?
-NVCC_FLAGS = ["-O2", "-std=c++17"]
+NVCC_FLAGS = ["-O2", "-std=c++20"]
 
 ABI = 1 if torch._C._GLIBCXX_USE_CXX11_ABI else 0
 CXX_FLAGS += [f"-D_GLIBCXX_USE_CXX11_ABI={ABI}"]
